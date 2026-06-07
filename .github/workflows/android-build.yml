@@ -2,11 +2,8 @@ name: Android Build & Release
 
 on:
   push:
-    branches: [ main, develop ]
-  pull_request:
     branches: [ main ]
-  release:
-    types: [created]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -32,10 +29,17 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          npm install
+          npm install -D typescript
+
+      - name: Create web directory
+        run: |
+          mkdir -p www
+          cp -r index.html css js assets data docs capacitor.config.ts package.json www/
 
       - name: Initialize Capacitor
-        run: npx cap init "Sky Legends Runner" "com.skylegends.runner" --web-dir .
+        run: npx cap init "Sky Legends Runner" "com.skylegends.runner" --web-dir www || true
 
       - name: Add Android Platform
         run: npx cap add android || true
@@ -43,12 +47,11 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Make Gradlew executable
-        run: chmod +x android/gradlew
-
       - name: Build Debug APK
         working-directory: android
-        run: ./gradlew assembleDebug
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
       - name: Build Release APK
         working-directory: android
@@ -61,64 +64,44 @@ jobs:
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: sky-legends-runner-debug
+          name: sky-legends-runner-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
+          retention-days: 90
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
           name: sky-legends-runner-release-apk
           path: android/app/build/outputs/apk/release/app-release-unsigned.apk
-          retention-days: 30
+          retention-days: 90
 
       - name: Upload Release AAB
         uses: actions/upload-artifact@v4
         with:
           name: sky-legends-runner-release-aab
           path: android/app/build/outputs/bundle/release/app-release.aab
-          retention-days: 30
+          retention-days: 90
 
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'release'
-    
-    permissions:
-      contents: write
-    
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
+      - name: Create Release
+        if: success()
+        uses: softprops/action-gh-release@v2
         with:
-          path: artifacts
-
-      - name: Create GitHub Release with APK
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.event.release.tag_name }}
-          name: "Sky Legends Runner ${{ github.event.release.tag_name }}"
+          tag_name: v1.0.0
+          name: "Sky Legends Runner v1.0.0"
           body: |
-            ## Sky Legends Runner v${{ github.event.release.tag_name }}
+            ## Sky Legends Runner v1.0.0
             
-            ### What's New
-            - Bug fixes and performance improvements
-            - New features and content
+            Premium Endless Runner Adventure Game
             
             ### Installation
-            1. Download the APK file below
-            2. Enable "Install from unknown sources" on your Android device
-            3. Install the APK and enjoy!
-            
-            ### Notes
-            - APK: Direct install for Android devices
-            - AAB: For Google Play Store submission
+            1. Download the APK below
+            2. Enable "Install from unknown sources" on Android
+            3. Install and play!
           files: |
-            artifacts/sky-legends-runner-release-apk/*
-            artifacts/sky-legends-runner-release-aab/*
-            artifacts/sky-legends-runner-debug/*
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/release/app-release-unsigned.apk
+            android/app/build/outputs/bundle/release/app-release.aab
           draft: false
           prerelease: false
-          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
