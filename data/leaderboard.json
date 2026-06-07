@@ -1,0 +1,10 @@
+{
+  "leaderboard": {
+    "description": "Mock leaderboard data for development",
+    "entries": [
+      { "name": "DragonSlayer", "score": 98500, "level": 87 },
+      { "name": "ShadowNinja", "score": 87200, "level": 72 },
+      { "name": "SkyRunner", "score": 76800, "level": 65 }
+    ]
+  }
+}
