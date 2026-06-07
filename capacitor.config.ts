@@ -3,7 +3,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.skylegends.runner',
   appName: 'Sky Legends Runner',
-  webDir: '.',
+  webDir: 'www',
   server: {
     androidScheme: 'https'
   },
